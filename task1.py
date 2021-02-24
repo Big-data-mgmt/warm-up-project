@@ -23,6 +23,7 @@ def wordcloud(counts):
     plt.show() 
 
 def cleanUp(word):
+    word = word.encode("ascii", "ignore").decode() # remove unicode characters which were showing up as frequent chars
     regex = re.compile('[%s]' % re.escape(string.punctuation))
     word = regex.sub('', word)
     word = word.strip('"')
@@ -34,7 +35,12 @@ def cleanUp(word):
     return word
     
 def removeStopWords(tokens, stop_words):
-    return [w.lower() for w in tokens if not w.lower() in stop_words]
+    filteredWords = []
+    for w in tokens:
+        cleanWord = cleanUp(w.lower())
+        if cleanWord not in stop_words:
+            filteredWords.append(cleanWord)
+    return filteredWords
     
 
 def stringtodict(counts):
@@ -46,11 +52,11 @@ def stringtodict(counts):
     
 
 def wordcount():
-    stop_words = set(stopwords.words('english')) 
+    stop_words = set(stopwords.words('english'))
+    stop_words.add('said')
+    stop_words.add('mr')
     text_file = sc.textFile("nytimes_news_articles.txt") #reading file
-    counts = text_file.flatMap(lambda line: removeStopWords(word_tokenize(line), stop_words)).map(lambda word: (cleanUp(word), 1)).reduceByKey(lambda a, b: a + b, 1).map(lambda x: (x[1],x[0])).sortByKey(0, 1).map(lambda x: (x[1],x[0])).take(100) 
-    #counts.saveAsTextFile("C:\\Users\\bhagy\\OneDrive\\Desktop\\BIGDATA\\Warmup project\\archive\\counts")
-    #print(counts)
+    counts = text_file.flatMap(lambda line: removeStopWords(word_tokenize(line), stop_words)).map(lambda word: (word, 1)).reduceByKey(lambda a, b: a + b, 1).map(lambda x: (x[1],x[0])).sortByKey(0, 1).map(lambda x: (x[1],x[0])).take(100) 
     wordcloud(counts)
 
     
